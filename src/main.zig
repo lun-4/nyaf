@@ -60,6 +60,7 @@ pub fn main() anyerror!void {
     defer allocator.free(action);
 
     var ctx = Context{ .allocator = allocator };
+    defer ctx.deinit();
 
     if (std.mem.eql(u8, action, "enable")) {
         // ctx.enable();
