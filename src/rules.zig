@@ -19,16 +19,12 @@ pub const Protocol = enum {
 pub const Port = union(enum) {
     All: void,
     Numeric: u16,
+    Range: struct { from: u16, to: u16 },
 };
 
-pub const AddressRange = struct {
-    from: std.net.Address,
-    to: std.net.Address,
-};
-
+// TODO CIDR?
 pub const Target = union(enum) {
     Address: std.net.Address,
-    Range: AddressRange,
     Any: void,
     Local: void,
 };
@@ -42,6 +38,19 @@ pub const Rule = struct {
     port: Port,
     from: Target,
     to: Target,
+
+    fn printTarget(writer: anytype, comptime fmt: []const u8, target: Target) !void {
+        switch (target) {
+            .Any => {},
+            .Local => {
+                // TODO iface goes here
+                try writer.print(fmt, .{"inet4(wm0)"});
+            },
+            .Address => |addr| {
+                try writer.print(fmt, .{addr});
+            },
+        }
+    }
 
     /// Print this rule as an NPF rule.
     /// Caller owns the memory.
@@ -77,11 +86,17 @@ pub const Rule = struct {
             try writer.print(" flags S/SA", .{});
         }
 
-        // TODO: from to
-        try writer.print(" to {}", .{self.to});
+        try @This().printTarget(writer, " from {}", self.from);
+        try @This().printTarget(writer, " to {}", self.to);
+
         switch (self.port) {
             .All => {},
-            .Numeric => |port_num| try writer.print("{}", .{port_num}),
+            .Numeric => |port_num| {
+                try writer.print(" port {}", .{port_num});
+            },
+            .Range => |range| {
+                try writer.print(" port {}-{}", .{ range.from, range.to });
+            },
         }
 
         return list.toOwnedSlice();
@@ -103,11 +118,12 @@ test "ensure rules print out to good npf rules" {
         },
     };
     const npf_rules = [_][]const u8{
-        "pass stateful in on " ++ iface ++ " proto tcp flags S/SA to any port 80",
+        "pass stateful in on " ++ iface ++ " proto tcp flags S/SA port 80",
     };
 
     for (rules) |rule, idx| {
         const npf_rule = try rule.emitNpf(std.testing.allocator);
+        defer std.testing.allocator.free(npf_rule);
         std.debug.warn("{} => {}\n", .{ rule, npf_rule });
         const wanted_npf_rule = npf_rules[idx];
         std.debug.assert(std.mem.eql(u8, npf_rule, wanted_npf_rule));
