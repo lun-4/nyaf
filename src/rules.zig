@@ -8,6 +8,7 @@ pub const Action = enum {
 pub const Flow = enum {
     In,
     Out,
+    Any,
 };
 
 pub const Protocol = enum {
@@ -30,7 +31,7 @@ pub const Target = union(enum) {
 };
 
 pub const Rule = struct {
-    interface: []const u8,
+    interface: ?[]const u8,
 
     action: Action,
     flow: Flow,
@@ -69,12 +70,19 @@ pub const Rule = struct {
             try writer.print(" stateful", .{});
         }
 
-        _ = switch (self.flow) {
-            .In => try writer.write(" in"),
-            .Out => try writer.write(" out"),
-        };
+        switch (self.flow) {
+            .In => {
+                try writer.print(" in", .{});
+            },
+            .Out => {
+                try writer.print(" out", .{});
+            },
+            .Any => {},
+        }
 
-        try writer.print(" on {}", .{self.interface});
+        if (self.interface) |interface| {
+            try writer.print(" on {}", .{self.interface});
+        }
 
         _ = switch (self.protocol) {
             .TCP => try writer.write(" proto tcp"),
@@ -90,7 +98,7 @@ pub const Rule = struct {
         try @This().printTarget(writer, " to {}", self.to);
 
         switch (self.port) {
-            .All => {},
+            .All => try writer.print(" all", .{}),
             .Numeric => |port_num| {
                 try writer.print(" port {}", .{port_num});
             },
@@ -108,6 +116,15 @@ test "ensure rules print out to good npf rules" {
 
     const rules = [_]Rule{
         .{
+            .interface = null,
+            .action = .Deny,
+            .flow = .Any,
+            .protocol = .Any,
+            .port = Port{ .All = {} },
+            .from = Target{ .Any = {} },
+            .to = Target{ .Any = {} },
+        },
+        .{
             .interface = iface,
             .action = .Allow,
             .flow = .In,
@@ -118,6 +135,7 @@ test "ensure rules print out to good npf rules" {
         },
     };
     const npf_rules = [_][]const u8{
+        "block all",
         "pass stateful in on " ++ iface ++ " proto tcp flags S/SA port 80",
     };
 
