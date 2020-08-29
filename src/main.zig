@@ -12,7 +12,7 @@ const Context = struct {
 
     const Self = @This();
 
-    pub fn readConfigFile(self: *Self) !void {
+    pub fn readConfig(self: *Self) !void {
         var config_file_opt = std.fs.cwd().openFile(
             NYAF_CFG_PATH,
             .{ .read = true },
@@ -23,10 +23,18 @@ const Context = struct {
                 return err;
         };
 
-        const config = if (config_file_opt) |config_file|
-            try configs.parseConfig(self.allocator, config_file)
-        else
-            null;
+        if (config_file_opt) |config_file| {
+            self.cfg = try configs.parseConfig(self.allocator, config_file);
+        }
+    }
+
+    pub fn saveConfig(self: *Self) !void {
+        var config_file = try std.fs.cwd().createFile(NYAF_CFG_PATH, .{
+            .read = false,
+            .truncate = true,
+        });
+
+        try std.json.stringify(self.cfg.?, .{}, config_file.writer());
     }
 
     pub fn deinit(self: *const Self) void {
@@ -36,9 +44,29 @@ const Context = struct {
     }
 
     pub fn status(self: *Self) !void {
-        try self.readConfigFile();
+        try self.readConfig();
         if (self.cfg) |cfg| {
             std.debug.warn("enabled? {}\n", .{cfg.enabled});
+        } else {
+            std.debug.warn("nyaf config file not found\n", .{});
+        }
+    }
+
+    pub fn enable(self: *Self) !void {
+        try self.readConfig();
+        if (self.cfg) |*cfg| {
+            cfg.enabled = true;
+            try self.saveConfig();
+        } else {
+            std.debug.warn("nyaf config file not found\n", .{});
+        }
+    }
+
+    pub fn disable(self: *Self) !void {
+        try self.readConfig();
+        if (self.cfg) |*cfg| {
+            cfg.enabled = false;
+            try self.saveConfig();
         } else {
             std.debug.warn("nyaf config file not found\n", .{});
         }
@@ -63,9 +91,9 @@ pub fn main() anyerror!void {
     defer ctx.deinit();
 
     if (std.mem.eql(u8, action, "enable")) {
-        // ctx.enable();
+        try ctx.enable();
     } else if (std.mem.eql(u8, action, "disable")) {
-        // ctx.enable();
+        try ctx.disable();
     } else if (std.mem.eql(u8, action, "allow")) {
         const port = try (args_it.next(allocator) orelse @panic("expected action"));
         defer allocator.free(port);
