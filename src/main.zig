@@ -3,9 +3,13 @@ const std = @import("std");
 // TODO make it a build option or smth?
 const MAIN_FOLDER_PATH = "/etc/nyaf";
 const CFG_FILE_PATH = MAIN_FOLDER_PATH ++ "/config";
+const RULE_FILE_PATH = MAIN_FOLDER_PATH ++ "/rules";
 
 const configs = @import("config.zig");
 const Config = configs.Config;
+
+const rules_mod = @import("rules.zig");
+const Rules = rules_mod.Rules;
 
 const Context = struct {
     allocator: *std.mem.Allocator,
