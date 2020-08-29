@@ -2,6 +2,15 @@
 
 nyaf (nya firewall), a ufw-like frontend for npf
 
+## maybe don't use it
+
+while starting to write this i noticed that npf is way more expressive compared
+to what i'm aiming for, and even then, its inspiration, ufw, is to combat
+the hell that is iptables. npf isn't iptables. trying to make an ufw-like tool
+for npf is eh.
+
+i won't keep working on it, but the wip sources will be there.
+
 ## build
 
 ```sh
