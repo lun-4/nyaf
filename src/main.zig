@@ -1,11 +1,48 @@
 const std = @import("std");
 
+// TODO make it a build option or smth?
+const NYAF_CFG_PATH = "/etc/nyaf.conf";
+
+const configs = @import("config.zig");
+const Config = configs.Config;
+
 const Context = struct {
     allocator: *std.mem.Allocator,
+    cfg: ?Config = null,
 
     const Self = @This();
 
-    pub fn status(self: *Self) !void {}
+    pub fn readConfigFile(self: *Self) !void {
+        var config_file_opt = std.fs.cwd().openFile(
+            NYAF_CFG_PATH,
+            .{ .read = true },
+        ) catch |err| blk: {
+            if (err == error.FileNotFound)
+                break :blk null
+            else
+                return err;
+        };
+
+        const config = if (config_file_opt) |config_file|
+            try configs.parseConfig(self.allocator, config_file)
+        else
+            null;
+    }
+
+    pub fn deinit(self: *const Self) void {
+        if (self.cfg) |cfg| {
+            configs.freeConfig(self.allocator, cfg);
+        }
+    }
+
+    pub fn status(self: *Self) !void {
+        try self.readConfigFile();
+        if (self.cfg) |cfg| {
+            std.debug.warn("enabled? {}\n", .{cfg.enabled});
+        } else {
+            std.debug.warn("nyaf config file not found\n", .{});
+        }
+    }
 };
 
 pub fn main() anyerror!void {
@@ -45,6 +82,6 @@ pub fn main() anyerror!void {
     } else if (std.mem.eql(u8, action, "status") or std.mem.eql(u8, action, "list")) {
         try ctx.status();
     } else if (std.mem.eql(u8, action, "version")) {
-        std.log.info("nyaf v0.0.1\n", .{});
+        std.log.info("nyaf v0.0.1", .{});
     }
 }
