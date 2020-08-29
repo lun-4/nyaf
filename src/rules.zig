@@ -113,6 +113,7 @@ pub const Rule = struct {
 
 test "ensure rules print out to good npf rules" {
     const iface = "wm0";
+    const lo_iface = "lo0";
 
     const rules = [_]Rule{
         .{
@@ -142,12 +143,43 @@ test "ensure rules print out to good npf rules" {
             .from = Target{ .Any = {} },
             .to = Target{ .Any = {} },
         },
+        .{
+            .interface = iface,
+            .action = .Allow,
+            .flow = .Out,
+            .protocol = .UDP,
+            .port = Port{ .All = .{} },
+            .from = Target{ .Any = {} },
+            .to = Target{ .Any = {} },
+        },
+        .{
+            .interface = lo_iface,
+            .action = .Allow,
+            .flow = .Any,
+            .protocol = .Any,
+            .port = Port{ .All = .{} },
+            .from = Target{ .Any = {} },
+            .to = Target{ .Any = {} },
+        },
+
+        // .{
+        //     .interface = iface,
+        //     .action = .Allow,
+        //     .flow = .Out,
+        //     .protocol = .TCP,
+        //     .port = Port{ .All = .{} },
+        //     .from = Target{ .Any = {} },
+        //     .to = Target{ .Any = {} },
+        // },
     };
 
     const npf_rules = [_][]const u8{
         "block all",
         "pass stateful in on " ++ iface ++ " proto tcp flags S/SA port 80",
         "pass in on " ++ iface ++ " proto udp port 60001-60999",
+        "pass out on " ++ iface ++ " proto udp all",
+        "pass on " ++ lo_iface ++ " all",
+        //"pass stateful out on " ++ iface ++ " proto tcp all",
     };
 
     for (rules) |rule, idx| {
