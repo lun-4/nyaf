@@ -9,7 +9,6 @@ const configs = @import("config.zig");
 const Config = configs.Config;
 
 const rules_mod = @import("rules.zig");
-const Rules = rules_mod.Rules;
 
 const Context = struct {
     allocator: *std.mem.Allocator,
@@ -117,4 +116,8 @@ pub fn main() anyerror!void {
     } else if (std.mem.eql(u8, action, "version")) {
         std.log.info("nyaf v0.0.1", .{});
     }
+}
+
+test "refAllDecls" {
+    std.meta.refAllDecls(@This());
 }
