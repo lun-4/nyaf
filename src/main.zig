@@ -1,7 +1,8 @@
 const std = @import("std");
 
 // TODO make it a build option or smth?
-const NYAF_CFG_PATH = "/etc/nyaf.conf";
+const MAIN_FOLDER_PATH = "/etc/nyaf";
+const CFG_FILE_PATH = MAIN_FOLDER_PATH ++ "/config";
 
 const configs = @import("config.zig");
 const Config = configs.Config;
@@ -14,7 +15,7 @@ const Context = struct {
 
     pub fn readConfig(self: *Self) !void {
         var config_file_opt = std.fs.cwd().openFile(
-            NYAF_CFG_PATH,
+            CFG_FILE_PATH,
             .{ .read = true },
         ) catch |err| blk: {
             if (err == error.FileNotFound)
@@ -31,7 +32,9 @@ const Context = struct {
     }
 
     pub fn saveConfig(self: *Self) !void {
-        var config_file = try std.fs.cwd().createFile(NYAF_CFG_PATH, .{
+        try std.fs.cwd().makeDir(MAIN_FOLDER_PATH);
+
+        var config_file = try std.fs.cwd().createFile(CFG_FILE_PATH, .{
             .read = false,
             .truncate = true,
         });
