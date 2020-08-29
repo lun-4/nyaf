@@ -25,6 +25,8 @@ const Context = struct {
 
         if (config_file_opt) |config_file| {
             self.cfg = try configs.parseConfig(self.allocator, config_file);
+        } else {
+            self.cfg = Config{};
         }
     }
 
@@ -54,22 +56,14 @@ const Context = struct {
 
     pub fn enable(self: *Self) !void {
         try self.readConfig();
-        if (self.cfg) |*cfg| {
-            cfg.enabled = true;
-            try self.saveConfig();
-        } else {
-            std.debug.warn("nyaf config file not found\n", .{});
-        }
+        self.cfg.?.enabled = true;
+        try self.saveConfig();
     }
 
     pub fn disable(self: *Self) !void {
         try self.readConfig();
-        if (self.cfg) |*cfg| {
-            cfg.enabled = false;
-            try self.saveConfig();
-        } else {
-            std.debug.warn("nyaf config file not found\n", .{});
-        }
+        self.cfg.?.enabled = false;
+        try self.saveConfig();
     }
 };
 
