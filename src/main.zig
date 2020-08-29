@@ -32,7 +32,10 @@ const Context = struct {
     }
 
     pub fn saveConfig(self: *Self) !void {
-        try std.fs.cwd().makeDir(MAIN_FOLDER_PATH);
+        std.fs.makeDirAbsolute(MAIN_FOLDER_PATH) catch |err| switch (err) {
+            error.PathAlreadyExists => {},
+            else => return err,
+        };
 
         var config_file = try std.fs.cwd().createFile(CFG_FILE_PATH, .{
             .read = false,
