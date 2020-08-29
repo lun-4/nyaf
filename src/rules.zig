@@ -133,17 +133,27 @@ test "ensure rules print out to good npf rules" {
             .from = Target{ .Any = {} },
             .to = Target{ .Any = {} },
         },
+        .{
+            .interface = iface,
+            .action = .Allow,
+            .flow = .In,
+            .protocol = .UDP,
+            .port = Port{ .Range = .{ .from = 60001, .to = 60999 } },
+            .from = Target{ .Any = {} },
+            .to = Target{ .Any = {} },
+        },
     };
+
     const npf_rules = [_][]const u8{
         "block all",
         "pass stateful in on " ++ iface ++ " proto tcp flags S/SA port 80",
+        "pass in on " ++ iface ++ " proto udp port 60001-60999",
     };
 
     for (rules) |rule, idx| {
         const npf_rule = try rule.emitNpf(std.testing.allocator);
         defer std.testing.allocator.free(npf_rule);
-        std.debug.warn("{} => {}\n", .{ rule, npf_rule });
         const wanted_npf_rule = npf_rules[idx];
-        std.debug.assert(std.mem.eql(u8, npf_rule, wanted_npf_rule));
+        std.testing.expectEqualStrings(wanted_npf_rule, npf_rule);
     }
 }
