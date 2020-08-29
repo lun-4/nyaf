@@ -19,6 +19,7 @@ pub fn parseConfig(
 ) !Config {
     var reader = cfg_file.reader();
     const file_data = try reader.readAllAlloc(allocator, 1024);
+    defer allocator.free(file_data);
 
     const options = std.json.ParseOptions{ .allocator = allocator };
     var stream = std.json.TokenStream.init(file_data);
